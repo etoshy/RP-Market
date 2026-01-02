@@ -52,6 +52,7 @@
             font-size: 0.7rem;
             font-weight: bold;
             text-decoration: none;
+            text-align: center;
         }
 
         .nav-item i { font-size: 1.5rem; margin-bottom: 5px; }
@@ -71,6 +72,60 @@
 
         h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 25px; }
 
+        /* --- CALCULADORA DE DINHEIRO SUJO --- */
+        .money-calc-container {
+            background: #f1f2f6;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 2px solid var(--secondary);
+        }
+
+        .money-calc-header {
+            font-weight: bold;
+            color: var(--text);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .money-input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .money-field label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #636e72;
+        }
+
+        .money-field input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .money-result {
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .res-parceria { background: #e6fffa; border: 1px solid var(--secondary); }
+        .res-sem { background: #fff5f5; border: 1px solid var(--warning); }
+        
+        .res-val { display: block; font-size: 1rem; font-weight: bold; color: var(--text); }
+        .res-tax { display: block; font-size: 0.8rem; color: #666; margin-top: 4px;}
+
+        /* --- Itens Grid --- */
         .items-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -145,9 +200,8 @@
         }
 
         .total-row { display: flex; justify-content: space-between; align-items: center; }
-        .total-row.big { font-size: 1.2rem; font-weight: bold; }
-        .com-parceria { color: var(--secondary); }
-        .sem-parceria { color: var(--warning); }
+        .com-parceria { color: var(--secondary); font-weight: bold;}
+        .sem-parceria { color: var(--warning); font-weight: bold;}
 
         .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .btn {
@@ -170,6 +224,7 @@
             body { flex-direction: column; overflow: auto; height: auto; }
             .navbar { width: 100%; flex-direction: row; justify-content: center; height: 70px; }
             .cart-sidebar { width: 100%; border-left: none; border-top: 1px solid #ddd; }
+            .money-input-group { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -202,11 +257,11 @@
 
         <div class="total-container">
             <div class="total-row com-parceria">
-                <span>Com Parceria:</span>
+                <span>Total Com Parceria:</span>
                 <span id="total-com">R$ 0,00</span>
             </div>
             <div class="total-row sem-parceria">
-                <span>Sem Parceria:</span>
+                <span>Total Sem Parceria:</span>
                 <span id="total-sem">R$ 0,00</span>
             </div>
             <div class="actions">
@@ -255,6 +310,7 @@
             lavagem: {
                 title: "Itens de Lavagem / Roubo",
                 icon: "fa-money-bill-wave",
+                hasMoneyCalc: true, // Adicionado para ativar a calculadora nesta aba
                 items: [
                     { id: 'l1', nome: "ALGEMAS", com: 50000, sem: 60000 },
                     { id: 'l2', nome: "CAPUZ", com: 60000, sem: 70000 },
@@ -268,6 +324,7 @@
             desmanche: {
                 title: "Drogas e Desmanche",
                 icon: "fa-car-crash",
+                hasMoneyCalc: true, // Adicionado para ativar a calculadora nesta aba
                 items: [
                     { id: 'd1', nome: "FARINHA", com: 5500, sem: 6500 },
                     { id: 'd2', nome: "CRISTAL", com: 5500, sem: 6600 },
@@ -296,6 +353,33 @@
                 section.className = `category-page ${cat === 'armas' ? 'active' : ''}`;
                 section.id = `page-${cat}`;
 
+                let html = `<h2><i class="fas ${database[cat].icon}"></i> ${database[cat].title}</h2>`;
+
+                // Adiciona a Calculadora de Porcentagem se a categoria permitir
+                if (database[cat].hasMoneyCalc) {
+                    html += `
+                        <div class="money-calc-container">
+                            <div class="money-calc-header"><i class="fas fa-calculator"></i> Calculadora de Dinheiro Sujo</div>
+                            <div class="money-input-group">
+                                <div class="money-field">
+                                    <label>Valor Total Sujo:</label>
+                                    <input type="number" placeholder="Digite o valor..." oninput="calcularSplit(this.value, '${cat}')">
+                                </div>
+                                <div class="money-result res-parceria">
+                                    <label>Com Parceria (30%)</label>
+                                    <span class="res-val" id="clean-com-${cat}">Recebe: R$ 0,00</span>
+                                    <span class="res-tax" id="tax-com-${cat}">Taxa Fac: R$ 0,00</span>
+                                </div>
+                                <div class="money-result res-sem">
+                                    <label>Sem Parceria (40%)</label>
+                                    <span class="res-val" id="clean-sem-${cat}">Recebe: R$ 0,00</span>
+                                    <span class="res-tax" id="tax-sem-${cat}">Taxa Fac: R$ 0,00</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
                 let cardsHtml = database[cat].items.map(item => `
                     <div class="item-card">
                         <div class="item-name">${item.nome}</div>
@@ -309,10 +393,29 @@
                     </div>
                 `).join('');
 
-                section.innerHTML = `<h2><i class="fas ${database[cat].icon}"></i> ${database[cat].title}</h2>
-                                    <div class="items-grid">${cardsHtml}</div>`;
+                html += `<div class="items-grid">${cardsHtml}</div>`;
+                section.innerHTML = html;
                 main.appendChild(section);
             }
+        }
+
+        // Função de cálculo de split
+        function calcularSplit(valor, catId) {
+            const total = parseFloat(valor) || 0;
+            
+            // Com Parceria: Fac tira 30%, cliente leva 70%
+            const cleanCom = total * 0.70;
+            const taxCom = total * 0.30;
+
+            // Sem Parceria: Fac tira 40%, cliente leva 60%
+            const cleanSem = total * 0.60;
+            const taxSem = total * 0.40;
+
+            document.getElementById(`clean-com-${catId}`).innerText = "Recebe: " + formatarMoeda(cleanCom);
+            document.getElementById(`tax-com-${catId}`).innerText = "Taxa Fac: " + formatarMoeda(taxCom);
+            
+            document.getElementById(`clean-sem-${catId}`).innerText = "Recebe: " + formatarMoeda(cleanSem);
+            document.getElementById(`tax-sem-${catId}`).innerText = "Taxa Fac: " + formatarMoeda(taxSem);
         }
 
         function showTab(tabId, el) {
@@ -326,7 +429,6 @@
             carrinho[itemId] = (carrinho[itemId] || 0) + delta;
             if (carrinho[itemId] <= 0) delete carrinho[itemId];
             
-            // Atualizar UI
             const el = document.getElementById('qty-' + itemId);
             if (el) el.innerText = carrinho[itemId] || 0;
             
@@ -368,7 +470,16 @@
         function limparCarrinho() {
             carrinho = {};
             document.querySelectorAll('.qty-input').forEach(i => i.innerText = '0');
+            updateCartCalculators(); // Limpa as calculadoras de input tbm
             atualizarResumo();
+        }
+
+        function updateCartCalculators() {
+            document.querySelectorAll('.money-field input').forEach(i => {
+                i.value = '';
+                // Dispara o evento de input manual para zerar os textos de resultado
+                i.dispatchEvent(new Event('input'));
+            });
         }
 
         function copiarPedido() {
