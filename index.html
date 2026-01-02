@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Vendas RP</title>
+    <!-- Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --secondary: #00b894;
+            --accent: #fd79a8;
+            --warning: #ff7675;
+            --bg: #f8f9fa;
+            --text: #2d3436;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+
+        body {
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Sidebar de Navegação --- */
+        .navbar {
+            width: 100px;
+            background: #fff;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            gap: 20px;
+        }
+
+        .nav-item {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.3s;
+            color: #b2bec3;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .nav-item i { font-size: 1.5rem; margin-bottom: 5px; }
+        .nav-item:hover { background: #f0f0f0; color: var(--primary); }
+        .nav-item.active { background: var(--primary); color: white; }
+
+        /* --- Área Principal --- */
+        main {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            background: #fff;
+        }
+
+        .category-page { display: none; }
+        .category-page.active { display: block; }
+
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 25px; }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .item-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: 0.3s;
+        }
+
+        .item-card:hover { border-color: var(--primary); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+
+        .item-name { font-weight: bold; font-size: 1.1rem; color: var(--text); }
+        .price-tag { font-size: 0.85rem; color: #636e72; }
+        .price-tag strong { color: var(--secondary); }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .btn-qty {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            border: none;
+            background: #eee;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .btn-qty:hover { background: var(--primary); color: white; }
+        .qty-input { width: 40px; text-align: center; border: none; font-weight: bold; font-size: 1.1rem; }
+
+        /* --- Carrinho Lateral --- */
+        .cart-sidebar {
+            width: 350px;
+            background: #fff;
+            border-left: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            padding: 25px;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.02);
+        }
+
+        .cart-items { flex: 1; overflow-y: auto; margin: 20px 0; border-top: 1px solid #eee; }
+        .cart-item-row { 
+            display: flex; 
+            justify-content: space-between; 
+            padding: 10px 0; 
+            border-bottom: 1px dashed #eee;
+            font-size: 0.9rem;
+        }
+
+        .total-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            gap: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .total-row { display: flex; justify-content: space-between; align-items: center; }
+        .total-row.big { font-size: 1.2rem; font-weight: bold; }
+        .com-parceria { color: var(--secondary); }
+        .sem-parceria { color: var(--warning); }
+
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        .btn-copy { background: var(--primary); color: white; }
+        .btn-clear { background: #dfe6e9; color: var(--text); }
+        .btn:hover { opacity: 0.8; }
+
+        @media (max-width: 800px) {
+            body { flex-direction: column; overflow: auto; height: auto; }
+            .navbar { width: 100%; flex-direction: row; justify-content: center; height: 70px; }
+            .cart-sidebar { width: 100%; border-left: none; border-top: 1px solid #ddd; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="nav-item active" onclick="showTab('armas', this)">
+            <i class="fas fa-gun"></i><span>ARMAS</span>
+        </div>
+        <div class="nav-item" onclick="showTab('municao', this)">
+            <i class="fas fa-bullseye"></i><span>MUNIÇÃO</span>
+        </div>
+        <div class="nav-item" onclick="showTab('lavagem', this)">
+            <i class="fas fa-money-bill-wave"></i><span>LAVAGEM</span>
+        </div>
+        <div class="nav-item" onclick="showTab('desmanche', this)">
+            <i class="fas fa-car-crash"></i><span>EXTRA</span>
+        </div>
+    </nav>
+
+    <main id="main-content">
+        <!-- Conteúdo gerado via JavaScript -->
+    </main>
+
+    <aside class="cart-sidebar">
+        <h3><i class="fas fa-shopping-cart"></i> Resumo</h3>
+        <div class="cart-items" id="cart-list">
+            <p style="color: #999; text-align: center; margin-top: 20px;">Nenhum item adicionado.</p>
+        </div>
+
+        <div class="total-container">
+            <div class="total-row com-parceria">
+                <span>Com Parceria:</span>
+                <span id="total-com">R$ 0,00</span>
+            </div>
+            <div class="total-row sem-parceria">
+                <span>Sem Parceria:</span>
+                <span id="total-sem">R$ 0,00</span>
+            </div>
+            <div class="actions">
+                <button class="btn btn-clear" onclick="limparCarrinho()">
+                    <i class="fas fa-trash"></i> Limpar
+                </button>
+                <button class="btn btn-copy" onclick="copiarPedido()">
+                    <i class="fas fa-copy"></i> Copiar
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <script>
+        const database = {
+            armas: {
+                title: "Armas",
+                icon: "fa-gun",
+                items: [
+                    { id: 'a1', nome: "AK47", com: 720000, sem: 750000 },
+                    { id: 'a2', nome: "G36", com: 670000, sem: 690000 },
+                    { id: 'a3', nome: "MILITARY RIFLE", com: 630000, sem: 660000 },
+                    { id: 'a4', nome: "MPX", com: 570000, sem: 600000 },
+                    { id: 'a5', nome: "SCARH", com: 500000, sem: 530000 },
+                    { id: 'a6', nome: "MTAR-21", com: 450000, sem: 480000 },
+                    { id: 'a7', nome: "TEC-9", com: 370000, sem: 400000 },
+                    { id: 'a8', nome: "GLOCK", com: 230000, sem: 250000 },
+                    { id: 'a9', nome: "FIVE SEVEN", com: 170000, sem: 200000 }
+                ]
+            },
+            municao: {
+                title: "Munições",
+                icon: "fa-bullseye",
+                items: [
+                    { id: 'm1', nome: "Munição AK47", com: 3800, sem: 4500 },
+                    { id: 'm2', nome: "Munição G36", com: 3520, sem: 4290 },
+                    { id: 'm3', nome: "Munição Military", com: 2860, sem: 3432 },
+                    { id: 'm4', nome: "Munição MPX", com: 1760, sem: 2145 },
+                    { id: 'm5', nome: "Munição SCARH", com: 1430, sem: 1720 },
+                    { id: 'm6', nome: "Munição MTAR", com: 1210, sem: 1321 },
+                    { id: 'm7', nome: "Munição TEC-9", com: 1000, sem: 1200 },
+                    { id: 'm8', nome: "Munição GLOCK", com: 900, sem: 1000 },
+                    { id: 'm9', nome: "Munição FIVE", com: 800, sem: 900 }
+                ]
+            },
+            lavagem: {
+                title: "Itens de Lavagem / Roubo",
+                icon: "fa-money-bill-wave",
+                items: [
+                    { id: 'l1', nome: "ALGEMAS", com: 50000, sem: 60000 },
+                    { id: 'l2', nome: "CAPUZ", com: 60000, sem: 70000 },
+                    { id: 'l3', nome: "COLETE", com: 100000, sem: 120000 },
+                    { id: 'l4', nome: "KIT SEQUESTRO", com: 110000, sem: 130000 },
+                    { id: 'l5', nome: "SOCO INGLÊS", com: 125000, sem: 150000 },
+                    { id: 'l6', nome: "COLETE PREMIUM", com: 150000, sem: 180000 },
+                    { id: 'l7', nome: "BLACKLIST", com: 2200000, sem: 2500000 }
+                ]
+            },
+            desmanche: {
+                title: "Drogas e Desmanche",
+                icon: "fa-car-crash",
+                items: [
+                    { id: 'd1', nome: "FARINHA", com: 5500, sem: 6500 },
+                    { id: 'd2', nome: "CRISTAL", com: 5500, sem: 6600 },
+                    { id: 'd3', nome: "ERVA", com: 5500, sem: 6600 },
+                    { id: 'd4', nome: "MOCHILA", com: 50000, sem: 60000 },
+                    { id: 'd5', nome: "LOCKPICK", com: 60000, sem: 70000 },
+                    { id: 'd6', nome: "C4", com: 60000, sem: 70000 },
+                    { id: 'd7', nome: "MOCHILA X", com: 110000, sem: 130000 },
+                    { id: 'd8', nome: "BAÚ 1500KG", com: 10400000, sem: 12500000 }
+                ]
+            }
+        };
+
+        let carrinho = {};
+
+        function formatarMoeda(v) {
+            return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function renderPages() {
+            const main = document.getElementById('main-content');
+            main.innerHTML = '';
+
+            for (let cat in database) {
+                const section = document.createElement('div');
+                section.className = `category-page ${cat === 'armas' ? 'active' : ''}`;
+                section.id = `page-${cat}`;
+
+                let cardsHtml = database[cat].items.map(item => `
+                    <div class="item-card">
+                        <div class="item-name">${item.nome}</div>
+                        <div class="price-tag">Com: <strong>${formatarMoeda(item.com)}</strong></div>
+                        <div class="price-tag">Sem: <strong>${formatarMoeda(item.sem)}</strong></div>
+                        <div class="controls">
+                            <button class="btn-qty" onclick="changeQty('${item.id}', -1)">-</button>
+                            <span class="qty-input" id="qty-${item.id}">0</span>
+                            <button class="btn-qty" onclick="changeQty('${item.id}', 1)">+</button>
+                        </div>
+                    </div>
+                `).join('');
+
+                section.innerHTML = `<h2><i class="fas ${database[cat].icon}"></i> ${database[cat].title}</h2>
+                                    <div class="items-grid">${cardsHtml}</div>`;
+                main.appendChild(section);
+            }
+        }
+
+        function showTab(tabId, el) {
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelectorAll('.category-page').forEach(p => p.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('page-' + tabId).classList.add('active');
+        }
+
+        function changeQty(itemId, delta) {
+            carrinho[itemId] = (carrinho[itemId] || 0) + delta;
+            if (carrinho[itemId] <= 0) delete carrinho[itemId];
+            
+            // Atualizar UI
+            const el = document.getElementById('qty-' + itemId);
+            if (el) el.innerText = carrinho[itemId] || 0;
+            
+            atualizarResumo();
+        }
+
+        function atualizarResumo() {
+            const cartList = document.getElementById('cart-list');
+            let totalCom = 0;
+            let totalSem = 0;
+            let html = '';
+
+            for (let id in carrinho) {
+                let itemObj;
+                for (let cat in database) {
+                    let found = database[cat].items.find(i => i.id === id);
+                    if (found) itemObj = found;
+                }
+
+                if (itemObj) {
+                    const qtd = carrinho[id];
+                    totalCom += itemObj.com * qtd;
+                    totalSem += itemObj.sem * qtd;
+
+                    html += `
+                        <div class="cart-item-row">
+                            <span>${qtd}x ${itemObj.nome}</span>
+                            <strong>${formatarMoeda(itemObj.com * qtd)}</strong>
+                        </div>
+                    `;
+                }
+            }
+
+            cartList.innerHTML = html || '<p style="color: #999; text-align: center; margin-top: 20px;">Nenhum item selecionado.</p>';
+            document.getElementById('total-com').innerText = formatarMoeda(totalCom);
+            document.getElementById('total-sem').innerText = formatarMoeda(totalSem);
+        }
+
+        function limparCarrinho() {
+            carrinho = {};
+            document.querySelectorAll('.qty-input').forEach(i => i.innerText = '0');
+            atualizarResumo();
+        }
+
+        function copiarPedido() {
+            if (Object.keys(carrinho).length === 0) return alert("Carrinho vazio!");
+
+            let texto = "🛒 *NOVO PEDIDO DE ITENS*\n\n";
+            for (let id in carrinho) {
+                for (let cat in database) {
+                    let found = database[cat].items.find(i => i.id === id);
+                    if (found) {
+                        texto += `• ${carrinho[id]}x ${found.nome}\n`;
+                    }
+                }
+            }
+            texto += `\n✅ *Total Com Parceria:* ${document.getElementById('total-com').innerText}`;
+            texto += `\n❌ *Total Sem Parceria:* ${document.getElementById('total-sem').innerText}`;
+
+            navigator.clipboard.writeText(texto);
+            alert("Pedido copiado para a área de transferência!");
+        }
+
+        renderPages();
+    </script>
+</body>
+</html>
