@@ -39,8 +39,8 @@
         }
 
         .nav-item {
-            width: 60px;
-            height: 60px;
+            width: 80px;
+            height: 70px;
             border-radius: 12px;
             display: flex;
             flex-direction: column;
@@ -49,7 +49,7 @@
             cursor: pointer;
             transition: 0.3s;
             color: #b2bec3;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: bold;
             text-decoration: none;
             text-align: center;
@@ -72,7 +72,7 @@
 
         h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 25px; }
 
-        /* --- CALCULADORA DE DINHEIRO SUJO --- */
+        /* --- CALCULADORA DE PORCENTAGEM (LAVAGEM / DESMANCHE) --- */
         .money-calc-container {
             background: #f1f2f6;
             border-radius: 15px;
@@ -88,6 +88,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            text-transform: uppercase;
         }
 
         .money-input-group {
@@ -152,7 +153,8 @@
         .controls {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
+            gap: 10px;
             margin-top: 10px;
         }
 
@@ -165,10 +167,29 @@
             cursor: pointer;
             font-weight: bold;
             font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .btn-qty:hover { background: var(--primary); color: white; }
-        .qty-input { width: 40px; text-align: center; border: none; font-weight: bold; font-size: 1.1rem; }
+
+        /* Estilo para o campo onde digita o numero */
+        .qty-input-field {
+            width: 60px;
+            height: 35px;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            outline: none;
+        }
+        .qty-input-field:focus { border-color: var(--primary); }
+
+        /* Remover setinhas do input number */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
         /* --- Carrinho Lateral --- */
         .cart-sidebar {
@@ -241,7 +262,7 @@
             <i class="fas fa-money-bill-wave"></i><span>LAVAGEM</span>
         </div>
         <div class="nav-item" onclick="showTab('desmanche', this)">
-            <i class="fas fa-car-crash"></i><span>EXTRA</span>
+            <i class="fas fa-car-crash"></i><span>DESMANCHE</span>
         </div>
     </nav>
 
@@ -308,9 +329,10 @@
                 ]
             },
             lavagem: {
-                title: "Itens de Lavagem / Roubo",
+                title: "Lavagem de Dinheiro",
                 icon: "fa-money-bill-wave",
-                hasMoneyCalc: true, // Adicionado para ativar a calculadora nesta aba
+                calcTitle: "Calculadora de Dinheiro Sujo",
+                hasMoneyCalc: true,
                 items: [
                     { id: 'l1', nome: "ALGEMAS", com: 50000, sem: 60000 },
                     { id: 'l2', nome: "CAPUZ", com: 60000, sem: 70000 },
@@ -322,9 +344,10 @@
                 ]
             },
             desmanche: {
-                title: "Drogas e Desmanche",
+                title: "Desmanche",
                 icon: "fa-car-crash",
-                hasMoneyCalc: true, // Adicionado para ativar a calculadora nesta aba
+                calcTitle: "Calculadora de Desmanche",
+                hasMoneyCalc: true,
                 items: [
                     { id: 'd1', nome: "FARINHA", com: 5500, sem: 6500 },
                     { id: 'd2', nome: "CRISTAL", com: 5500, sem: 6600 },
@@ -355,14 +378,13 @@
 
                 let html = `<h2><i class="fas ${database[cat].icon}"></i> ${database[cat].title}</h2>`;
 
-                // Adiciona a Calculadora de Porcentagem se a categoria permitir
                 if (database[cat].hasMoneyCalc) {
                     html += `
                         <div class="money-calc-container">
-                            <div class="money-calc-header"><i class="fas fa-calculator"></i> Calculadora de Dinheiro Sujo</div>
+                            <div class="money-calc-header"><i class="fas fa-calculator"></i> ${database[cat].calcTitle}</div>
                             <div class="money-input-group">
                                 <div class="money-field">
-                                    <label>Valor Total Sujo:</label>
+                                    <label>Valor Total:</label>
                                     <input type="number" placeholder="Digite o valor..." oninput="calcularSplit(this.value, '${cat}')">
                                 </div>
                                 <div class="money-result res-parceria">
@@ -387,7 +409,8 @@
                         <div class="price-tag">Sem: <strong>${formatarMoeda(item.sem)}</strong></div>
                         <div class="controls">
                             <button class="btn-qty" onclick="changeQty('${item.id}', -1)">-</button>
-                            <span class="qty-input" id="qty-${item.id}">0</span>
+                            <input type="number" class="qty-input-field" value="0" min="0" 
+                                id="qty-${item.id}" oninput="manualQty('${item.id}', this.value)">
                             <button class="btn-qty" onclick="changeQty('${item.id}', 1)">+</button>
                         </div>
                     </div>
@@ -399,21 +422,15 @@
             }
         }
 
-        // Função de cálculo de split
         function calcularSplit(valor, catId) {
             const total = parseFloat(valor) || 0;
-            
-            // Com Parceria: Fac tira 30%, cliente leva 70%
             const cleanCom = total * 0.70;
             const taxCom = total * 0.30;
-
-            // Sem Parceria: Fac tira 40%, cliente leva 60%
             const cleanSem = total * 0.60;
             const taxSem = total * 0.40;
 
             document.getElementById(`clean-com-${catId}`).innerText = "Recebe: " + formatarMoeda(cleanCom);
             document.getElementById(`tax-com-${catId}`).innerText = "Taxa Fac: " + formatarMoeda(taxCom);
-            
             document.getElementById(`clean-sem-${catId}`).innerText = "Recebe: " + formatarMoeda(cleanSem);
             document.getElementById(`tax-sem-${catId}`).innerText = "Taxa Fac: " + formatarMoeda(taxSem);
         }
@@ -425,13 +442,25 @@
             document.getElementById('page-' + tabId).classList.add('active');
         }
 
+        // Função para quando clica nos botões + ou -
         function changeQty(itemId, delta) {
-            carrinho[itemId] = (carrinho[itemId] || 0) + delta;
-            if (carrinho[itemId] <= 0) delete carrinho[itemId];
-            
             const el = document.getElementById('qty-' + itemId);
-            if (el) el.innerText = carrinho[itemId] || 0;
+            let current = parseInt(el.value) || 0;
+            let newVal = current + delta;
+            if (newVal < 0) newVal = 0;
             
+            el.value = newVal;
+            manualQty(itemId, newVal);
+        }
+
+        // Função para quando digita manualmente no teclado
+        function manualQty(itemId, value) {
+            let val = parseInt(value) || 0;
+            if (val <= 0) {
+                delete carrinho[itemId];
+            } else {
+                carrinho[itemId] = val;
+            }
             atualizarResumo();
         }
 
@@ -469,17 +498,12 @@
 
         function limparCarrinho() {
             carrinho = {};
-            document.querySelectorAll('.qty-input').forEach(i => i.innerText = '0');
-            updateCartCalculators(); // Limpa as calculadoras de input tbm
-            atualizarResumo();
-        }
-
-        function updateCartCalculators() {
+            document.querySelectorAll('.qty-input-field').forEach(i => i.value = '0');
             document.querySelectorAll('.money-field input').forEach(i => {
                 i.value = '';
-                // Dispara o evento de input manual para zerar os textos de resultado
                 i.dispatchEvent(new Event('input'));
             });
+            atualizarResumo();
         }
 
         function copiarPedido() {
